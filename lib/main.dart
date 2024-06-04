@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+
 void main() {
   runApp(MyApp());
 }
@@ -27,6 +28,68 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController loginController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   String imageSource = "images/question-mark.png";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCredentials();
+  }
+
+  Future<void> _loadCredentials() async {
+    String? username = await secureStorage.read(key: 'username');
+    String? password = await secureStorage.read(key: 'password');
+  }
+
+  if (username != null && password != null) {
+    loginController.text = username;
+    passwordController.text = password;
+  WidgetsBinding.instance.addPostFrameCallback((_)) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Credentials loaded'),
+        action: SnackBarAction(
+          label: 'Clear saved data',
+          onPressed: () {
+          _clearCredentials();
+          },
+        ),
+      );
+    }
+  }
+
+  Future<void> _saveCredentials(String username, String password) async {
+  await secureStorage.write(key: 'username', value: username);
+  await secureStorage.write(key: 'password', value: password);
+  }
+
+  Future<void> _clearCredentials() async {
+  await secureStorage.delete(key: 'username');
+  await secureStorage.delete(key: 'password');
+  setState(() {
+  loginController.clear();
+  passwordController.clear();
+  });
+  }
+
+  void _showSaveDialog() {
+    showDialog(context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: Text("Save Credentials"),
+        content: Text("Would you like to save your login details for next time?"),
+        actions: [
+          TextButton(onPressed: () {
+                        _clearCredentials();
+                        Navigator.of(context).pop();
+                        }, child: Text("No"),),
+          TextButton(onPressed: () {
+                        _saveCredentials(loginController.text, passwordController.text);
+                        Navigator.of(context).pop();
+                        }, child: Text('Yes'),)
+                ],
+              );
+            });
+  }
 
   @override
   Widget build(BuildContext context) {
