@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(MyApp());
 }
 
-
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-    theme: ThemeData(
-      colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      useMaterial3: true,
-    ),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+      ),
       home: LoginPage(),
     );
   }
@@ -36,59 +35,72 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _loadCredentials() async {
-    String? username = await secureStorage.read(key: 'username');
-    String? password = await secureStorage.read(key: 'password');
-  }
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? username = prefs.getString('username');
+    String? password = prefs.getString('password');
 
-  if (username != null && password != null) {
-    loginController.text = username;
-    passwordController.text = password;
-  WidgetsBinding.instance.addPostFrameCallback((_)) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Credentials loaded'),
-        action: SnackBarAction(
-          label: 'Clear saved data',
-          onPressed: () {
-          _clearCredentials();
-          },
-        ),
-      );
+    if (username != null && password != null) {
+      loginController.text = username;
+      passwordController.text = password;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Credentials loaded'),
+            action: SnackBarAction(
+              label: 'Clear saved data',
+              onPressed: () {
+                _clearCredentials();
+              },
+            ),
+          ),
+        );
+      });
     }
   }
 
   Future<void> _saveCredentials(String username, String password) async {
-  await secureStorage.write(key: 'username', value: username);
-  await secureStorage.write(key: 'password', value: password);
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('username', username);
+    await prefs.setString('password', password);
   }
 
   Future<void> _clearCredentials() async {
-  await secureStorage.delete(key: 'username');
-  await secureStorage.delete(key: 'password');
-  setState(() {
-  loginController.clear();
-  passwordController.clear();
-  });
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove('username');
+    await prefs.remove('password');
+    setState(() {
+      loginController.clear();
+      passwordController.clear();
+    });
   }
 
   void _showSaveDialog() {
-    showDialog(context: context,
-    builder: (context) {
-      return AlertDialog(
-        title: Text("Save Credentials"),
-        content: Text("Would you like to save your login details for next time?"),
-        actions: [
-          TextButton(onPressed: () {
-                        _clearCredentials();
-                        Navigator.of(context).pop();
-                        }, child: Text("No"),),
-          TextButton(onPressed: () {
-                        _saveCredentials(loginController.text, passwordController.text);
-                        Navigator.of(context).pop();
-                        }, child: Text('Yes'),)
-                ],
-              );
-            });
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Save Credentials"),
+          content: Text("Would you like to save your login details for next time?"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                _clearCredentials();
+                Navigator.of(context).pop();
+              },
+              child: Text("No"),
+            ),
+            TextButton(
+              onPressed: () {
+                _saveCredentials(loginController.text, passwordController.text);
+                Navigator.of(context).pop();
+              },
+              child: Text('Yes'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -120,6 +132,7 @@ class _LoginPageState extends State<LoginPage> {
                     imageSource = "images/stop-sign.png";
                   }
                 });
+                _showSaveDialog();
               },
               child: Text('Login'),
             ),
@@ -135,4 +148,3 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
-
