@@ -1,6 +1,6 @@
 
 import 'dart:ffi';
-import 'package:sqflite/sqflite.dart' as sqflite;
+import 'ToDoItem.dart';
 import 'package:floor/floor.dart';
 
 @entity
@@ -16,14 +16,14 @@ class ToDoItem {
 }
 
 @dao
-abstract class ToDoItemDao {
+abstract class ToDoItemDAO {
   @Query('SELECT * FROM ToDoItem')
   Future<List<ToDoItem>> findAllToDoItems();
 
-  @Query('SELECT * FROM ToDoItem WHERE id = :id')
-  Stream<ToDoItem?> findToDoItemById(int id);
+  @delete
+  Future<int> deleteToDoItem(ToDoItem p);
 
   @insert
-  Future<Long> insertToDoItem(ToDoItem toDoItem);
+  Future<int> insertToDoItem(ToDoItem toDoItem);
 
 }
