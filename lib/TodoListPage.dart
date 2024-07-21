@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'database_helper.dart';
+import 'package:lab2/todo_item_dao.dart';
+import 'database.dart';
+import 'todo_item.dart';
 
 class TodoListPage extends StatefulWidget {
   @override
@@ -8,38 +10,49 @@ class TodoListPage extends StatefulWidget {
 
 class _TodoListPageState extends State<TodoListPage> {
   final TextEditingController _textController = TextEditingController();
-  final List<Map<String, dynamic>> _todoItems = [];
+  final List<ToDoItem> _todoItems = [];
+  late AppDatabase _database;
+  late ToDoItemDao _toDoItemDao;
 
   @override
   void initState() {
     super.initState();
-    _loadTodoItems();
+    _initializeDatabase();
   }
 
-  Future<void> _loadTodoItems() async {
-    final items = await DatabaseHelper().getTodoItems();
+  Future<void> _initializeDatabase() async {
+    _database = await $FloorAppDatabase.databaseBuilder('app_database.db').build();
+    _toDoItemDao = _database.toDoItemDao;
+    _loadToDoItems();
+  }
+
+  Future<void> _loadToDoItems() async {
+    final items = await _toDoItemDao.findAllToDoItems();
     setState(() {
+      _todoItems.clear();
       _todoItems.addAll(items);
     });
   }
 
-  void _addTodoItem(String item) async {
-    await DatabaseHelper().insertTodoItem(item);
+  void _addToDoItem(String item) async {
+    final newToDo = ToDoItem(_todoItems.length, item);  // You might want a better ID management
+    await _toDoItemDao.insertToDoItem(newToDo);
     _textController.clear();
-    _loadTodoItems(); // Reload the list to include the new item
+    _loadToDoItems(); // Reload the list to include the new item
   }
 
-  void _removeTodoItem(int id) async {
-    await DatabaseHelper().deleteTodoItem(id);
-    _loadTodoItems(); // Reload the list to exclude the deleted item
+  void _removeToDoItem(int id) async {
+    final item = _todoItems.firstWhere((item) => item.id == id);
+    await _toDoItemDao.deleteToDoItem(item);
+    _loadToDoItems(); // Reload the list to exclude the deleted item
   }
 
-  void _promptRemoveTodoItem(int index) {
+  void _promptRemoveToDoItem(int index) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Remove Todo Item'),
-        content: Text('Are you sure you want to delete "${_todoItems[index]['item']}"?'),
+        title: Text('Remove ToDo Item'),
+        content: Text('Are you sure you want to delete "${_todoItems[index].name}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -47,7 +60,7 @@ class _TodoListPageState extends State<TodoListPage> {
           ),
           TextButton(
             onPressed: () {
-              _removeTodoItem(_todoItems[index]['id']);
+              _removeToDoItem(_todoItems[index].id);
               Navigator.of(context).pop();
             },
             child: Text('Yes'),
@@ -80,7 +93,7 @@ class _TodoListPageState extends State<TodoListPage> {
                 ElevatedButton(
                   onPressed: () {
                     if (_textController.text.isNotEmpty) {
-                      _addTodoItem(_textController.text);
+                      _addToDoItem(_textController.text);
                     }
                   },
                   child: Text('Add'),
@@ -96,8 +109,8 @@ class _TodoListPageState extends State<TodoListPage> {
               itemBuilder: (context, index) {
                 return ListTile(
                   title: Text('Row number: $index'),
-                  subtitle: Text(_todoItems[index]['item']),
-                  onLongPress: () => _promptRemoveTodoItem(index),
+                  subtitle: Text(_todoItems[index].name),
+                  onLongPress: () => _promptRemoveToDoItem(index),
                 );
               },
             ),
